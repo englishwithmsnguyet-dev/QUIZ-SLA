@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SLA Master Quiz — Ôn Tập Trắc Nghiệm & Tự Luận SLA (Câu 1–40)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-badge">SLA MASTER</div>
+        <div class="brand-title">
+          <h1>Web Quiz Ôn Tập Second Language Acquisition (Câu 1–40)</h1>
+          <p>Trắc nghiệm • Đúng/Sai • Chọn nhiều • Nối cột • Điền từ • Tự luận (Giải thích Song ngữ Anh - Việt)</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="stats-bar">
+          <span class="stat-item" title="Số câu đã kiểm tra">Đã làm: <strong id="stat-answered">0/40</strong></span>
+          <span class="stat-item correct" title="Số câu trả lời đúng">✓ Đúng: <strong id="stat-correct">0</strong></span>
+          <span class="stat-item wrong" title="Số câu trả lời sai">✕ Sai: <strong id="stat-wrong">0</strong></span>
+          <span class="stat-item" title="Tỷ lệ chính xác">🎯 <strong id="stat-accuracy">0%</strong></span>
+          <span class="stat-item bookmark" title="Số câu đánh dấu ôn kỹ">★ Lưu: <strong id="stat-bookmarked">0</strong></span>
+        </div>
+
+        <button type="button" class="btn btn-sm" id="shuffle-btn">🔀 Trộn thứ tự câu</button>
+        <button type="button" class="btn btn-sm" id="theme-toggle-btn">🌙 Giao diện Tối</button>
+        <button type="button" class="btn btn-sm btn-danger-outline" id="reset-all-btn">↺ Làm mới</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">
+          <span>Tiến độ hoàn thành</span>
+          <span id="filtered-count-label">40 câu</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Tìm kiếm & Lọc chuyên đề</div>
+        <input
+          type="search"
+          id="search-input"
+          class="search-input"
+          placeholder="🔍 Tìm từ khóa (VD: ZPD, recast, Swain...)"
+        />
+        <select id="topic-filter" class="filter-select" aria-label="Lọc theo chủ đề SLA">
+          <option value="ALL">📂 Tất cả chủ đề SLA (40 câu)</option>
+        </select>
+        <select id="type-filter" class="filter-select" aria-label="Lọc theo dạng câu hỏi">
+          <option value="ALL">🧩 Tất cả dạng câu hỏi</option>
+          <option value="single">Trắc nghiệm 1 đáp án (Single Choice)</option>
+          <option value="multi">Chọn nhiều đáp án (Tick all)</option>
+          <option value="tf">Đúng / Sai (True / False)</option>
+          <option value="matching">Nối cột khái niệm (Matching)</option>
+          <option value="fill">Điền từ (Fill in the blank)</option>
+          <option value="essay">Tự luận 150-200 từ (Câu 38)</option>
+        </select>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Lọc theo trạng thái làm bài</div>
+        <div class="status-pills">
+          <button type="button" class="status-pill active" data-status-filter="ALL">Tất cả</button>
+          <button type="button" class="status-pill" data-status-filter="UNANSWERED">Chưa làm</button>
+          <button type="button" class="status-pill" data-status-filter="WRONG">Câu làm sai</button>
+          <button type="button" class="status-pill" data-status-filter="BOOKMARKED">★ Đã đánh dấu</button>
+        </div>
+        <button
+          type="button"
+          class="btn btn-sm"
+          id="retry-wrong-btn"
+          style="width: 100%; margin-top: 0.5rem;"
+        >
+          🔥 Xóa kết quả các câu Sai để làm lại
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">
+          <span>Bảng câu hỏi (1–40)</span>
+          <span class="kbd-hint">Phím <kbd>←</kbd> <kbd>→</kbd></span>
+        </div>
+        <div class="question-grid" id="question-grid"></div>
+      </div>
+    </aside>
+
+    <!-- Right Content Area -->
+    <section class="quiz-workspace">
+      <div class="workspace-toolbar">
+        <div class="mode-tabs">
+          <button type="button" class="mode-tab active" data-view-mode="single">
+            🎯 Luyện từng câu
+          </button>
+          <button type="button" class="mode-tab" data-view-mode="list">
+            📜 Xem danh sách liền mạch
+          </button>
+          <button type="button" class="mode-tab" data-view-mode="cheatsheet">
+            ⚡ Tóm tắt lý thuyết SLA
+          </button>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+          <label class="toggle-label" title="Khi bật, bấm chọn đáp án A/B/C/D ở câu 1 lựa chọn hoặc Đúng/Sai sẽ chấm điểm và hiện giải thích ngay lập tức">
+            <input type="checkbox" id="auto-check-toggle" checked />
+            <span>Tự động chấm ngay khi chọn (Câu 1 đáp án)</span>
+          </label>
+
+          <label class="toggle-label" id="list-reveal-wrapper" style="display: none;">
+            <input type="checkbox" id="show-all-list-toggle" />
+            <span>Hiện đáp án & giải thích tất cả câu</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="questions-mount"></div>
+    </section>
+  </main>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
