@@ -22,11 +22,101 @@ const state = {
   essayTimerRunning: false,
   quizTimerSeconds: 60 * 60,
   quizTimerRunning: false,
+  soundEnabled: true,
   theme: "light"
 };
 
 let essayTimerInterval = null;
 let quizTimerInterval = null;
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass();
+    }
+  }
+  if (audioCtx && audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function spawnConfettiBurst() {
+  const emojis = ["🎉", "✨", "🌟", "🍀", "💯", "🎊"];
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("span");
+    el.className = "confetti-particle";
+    el.textContent = emojis[i % emojis.length];
+    const startX = window.innerWidth * 0.5 + (Math.random() - 0.5) * 180;
+    const startY = window.innerHeight * 0.45 + (Math.random() - 0.5) * 80;
+    const dx = `${(Math.random() - 0.5) * 280}px`;
+    const dy = `${-80 - Math.random() * 180}px`;
+    const rot = `${(Math.random() - 0.5) * 360}deg`;
+    el.style.left = `${startX}px`;
+    el.style.top = `${startY}px`;
+    el.style.setProperty("--dx", dx);
+    el.style.setProperty("--dy", dy);
+    el.style.setProperty("--rot", rot);
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1150);
+  }
+}
+
+function playAnswerEffect(isCorrect) {
+  if (isCorrect) {
+    spawnConfettiBurst();
+  }
+
+  if (!state.soundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    if (isCorrect) {
+      // Bright celebratory chime: C5 -> E5 -> G5 -> C6
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.075);
+
+        gain.gain.setValueAtTime(0.001, now + idx * 0.075);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + idx * 0.075 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.075 + 0.28);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.075);
+        osc.stop(now + idx * 0.075 + 0.3);
+      });
+    } else {
+      // Gentle two-tone descending wrong buzzer: E4 -> Bb3
+      const wrongNotes = [329.63, 233.08];
+      wrongNotes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(freq, now + idx * 0.14);
+
+        gain.gain.setValueAtTime(0.001, now + idx * 0.14);
+        gain.gain.exponentialRampToValueAtTime(0.14, now + idx * 0.14 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.14 + 0.22);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + idx * 0.14);
+        osc.stop(now + idx * 0.14 + 0.24);
+      });
+    }
+  } catch (e) {
+    console.warn("Audio effect error:", e);
+  }
+}
 
 function updateGlobalTimerUI() {
   const displayEl = document.getElementById("global-timer-display");
@@ -704,6 +794,9 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
             checked: shouldAutoCheck,
             isCorrect: shouldAutoCheck ? isCorrect : false
           };
+          if (shouldAutoCheck) {
+            playAnswerEffect(isCorrect);
+          }
           saveState(false);
           renderApp();
         }
@@ -1050,6 +1143,9 @@ function checkQuestionNow(q) {
     checked: true,
     isCorrect
   };
+  if (q.type !== "essay") {
+    playAnswerEffect(isCorrect);
+  }
   saveState(false);
   renderApp();
 }
@@ -1456,6 +1552,9 @@ function initEvents() {
               checked: state.autoCheckSingle,
               isCorrect: state.autoCheckSingle ? isCorrect : false
             };
+            if (state.autoCheckSingle) {
+              playAnswerEffect(isCorrect);
+            }
           }
           saveState(false);
           renderApp();
@@ -1463,6 +1562,25 @@ function initEvents() {
       }
     }
   });
+
+  // Sound Toggle Button
+  const soundBtn = document.getElementById("sound-toggle-btn");
+  const updateSoundBtnText = () => {
+    if (soundBtn) {
+      soundBtn.textContent = state.soundEnabled ? "🔊 Âm thanh: Bật" : "🔇 Âm thanh: Tắt";
+    }
+  };
+  updateSoundBtnText();
+  if (soundBtn) {
+    soundBtn.addEventListener("click", () => {
+      state.soundEnabled = !state.soundEnabled;
+      updateSoundBtnText();
+      if (state.soundEnabled) {
+        playAnswerEffect(true);
+      }
+      saveState(false);
+    });
+  }
 
   // 60-Minute Global Timer Controls
   document.getElementById("global-timer-toggle-btn").addEventListener("click", toggleGlobalTimer);
