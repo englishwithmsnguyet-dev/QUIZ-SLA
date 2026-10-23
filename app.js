@@ -65,15 +65,18 @@ function spawnConfettiBurst() {
   }
 }
 
+function checkIfAll40Completed() {
+  const answeredCount = Object.values(state.responses).filter((r) => r && r.checked).length;
+  if (answeredCount === 40) {
+    setTimeout(() => {
+      openFinalResultModal("Hoàn thành đủ 40/40 câu");
+    }, 450);
+  }
+}
+
 function playAnswerEffect(isCorrect) {
   if (isCorrect) {
     spawnConfettiBurst();
-  }
-
-  // Auto-report progress to Google Form at 10, 20, 30, 39, and 40 answered questions
-  const answeredCount = Object.values(state.responses).filter((r) => r && r.checked).length;
-  if ([10, 20, 30, 39, 40].includes(answeredCount)) {
-    trackStudentToGoogleForm(`Mốc tự động ${answeredCount}/40 câu`);
   }
 
   if (!state.soundEnabled) return;
@@ -165,14 +168,7 @@ function startGlobalTimer() {
     } else {
       pauseGlobalTimer();
       saveState(false);
-      trackStudentToGoogleForm("Hết giờ 60 phút");
-      const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
-      const correct = Object.values(state.responses).filter((r) => r && r.checked && r.isCorrect).length;
-      alert(
-        `⏰ ĐÃ HẾT THỜI GIAN 60 PHÚT!\n\nHọc viên: ${state.studentName || "---"} (Mã số học viên: ${
-          state.studentId || "---"
-        })\nSố câu đã hoàn thành: ${answered}/40 câu\nSố câu trả lời đúng: ${correct}/${answered} câu\n\nKết quả của bạn đã được tự động gửi về hệ thống!`
-      );
+      openFinalResultModal("Hết giờ 60 phút");
     }
   }, 1000);
 }
@@ -252,12 +248,15 @@ const GOOGLE_FORM_URL =
   "https://docs.google.com/forms/d/e/1FAIpQLSc63XZYkWf9OK8F4pyDcp9xpIcsiqKf9WlEQzhWHqWt2iuJHQ/formResponse";
 const GOOGLE_FORM_ENTRY_ID = "entry.501366970";
 
-function trackStudentToGoogleForm(actionNote = "Đăng nhập") {
+function trackStudentToGoogleForm(actionNote = "Kết quả cuối cùng") {
   if (!state.studentName || !state.studentId) return;
   const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
   const correct = Object.values(state.responses).filter((r) => r && r.checked && r.isCorrect).length;
+  const score10 = ((correct / 40) * 10).toFixed(2);
+  const pct = Math.round((correct / 40) * 100);
+  const timeSpentSec = Math.max(0, 60 * 60 - state.quizTimerSeconds);
   const timeStr = new Date().toLocaleString("vi-VN");
-  const content = `${state.studentName} - ${state.studentId} | ${actionNote} (Đã làm: ${answered}/40, Đúng: ${correct} câu - ${timeStr})`;
+  const content = `${state.studentName} - ${state.studentId} | ${actionNote}: Đúng ${correct}/40 câu (${score10}/10 điểm - ${pct}%) | Thời gian làm: ${formatTime(timeSpentSec)} | Lúc: ${timeStr}`;
 
   try {
     const formEl = document.getElementById("hidden-gform");
@@ -282,6 +281,34 @@ function trackStudentToGoogleForm(actionNote = "Đăng nhập") {
     });
   } catch (e) {
     console.warn("Could not send Google Form tracking:", e);
+  }
+}
+
+function openFinalResultModal(reasonLabel = "Hoàn thành 40 câu") {
+  pauseGlobalTimer();
+  saveState(false);
+
+  const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
+  const correct = Object.values(state.responses).filter((r) => r && r.checked && r.isCorrect).length;
+  const wrong = Math.max(0, answered - correct);
+  const score10 = ((correct / 40) * 10).toFixed(2);
+  const pct = Math.round((correct / 40) * 100);
+  const timeSpentSec = Math.max(0, 60 * 60 - state.quizTimerSeconds);
+
+  document.getElementById("result-student-info").textContent = `${state.studentName || "Học viên"} — Mã số học viên: ${state.studentId || "---"}`;
+  document.getElementById("result-score-10").textContent = `${score10} / 10 điểm`;
+  document.getElementById("result-accuracy-text").textContent = `Số câu đúng: ${correct}/40 câu (Đạt ${pct}%)`;
+  document.getElementById("result-answered-count").textContent = `${answered} / 40 câu`;
+  document.getElementById("result-correct-count").textContent = `${correct} câu`;
+  document.getElementById("result-wrong-count").textContent = `${wrong} câu`;
+  document.getElementById("result-time-spent").textContent = formatTime(timeSpentSec);
+
+  trackStudentToGoogleForm(reasonLabel);
+  spawnConfettiBurst();
+
+  const modal = document.getElementById("final-result-modal");
+  if (modal) {
+    modal.style.display = "flex";
   }
 }
 
@@ -391,7 +418,6 @@ function saveState(showFeedbackToast = false) {
   if (showFeedbackToast) {
     const answeredCount = Object.values(state.responses).filter((r) => r && r.checked).length;
     if (state.studentId) {
-      trackStudentToGoogleForm("Lưu tiến độ");
       showToast(
         `💾 Đã lưu tiến độ của ${state.studentName} (${state.studentId}) — Đã làm ${answeredCount}/40 câu!`
       );
@@ -454,7 +480,6 @@ function loginWithProfile(name, mssv) {
     showToast(`🎉 Đăng nhập thành công: ${cleanName} (${cleanId})`);
   }
 
-  trackStudentToGoogleForm("Đăng nhập");
   closeLoginModal();
   updateStudentHeaderUI();
   startGlobalTimer();
@@ -811,6 +836,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
           };
           if (shouldAutoCheck) {
             playAnswerEffect(isCorrect);
+            checkIfAll40Completed();
           }
           saveState(false);
           renderApp();
@@ -1166,6 +1192,7 @@ function checkQuestionNow(q) {
   }
   saveState(false);
   renderApp();
+  checkIfAll40Completed();
 }
 
 function formatTime(sec) {
@@ -1581,6 +1608,7 @@ function initEvents() {
             };
             if (state.autoCheckSingle) {
               playAnswerEffect(isCorrect);
+              checkIfAll40Completed();
             }
           }
           saveState(false);
@@ -1588,6 +1616,47 @@ function initEvents() {
         }
       }
     }
+  });
+
+  // Final Result & Submit Modal Controls
+  const submitFinalBtn = document.getElementById("submit-final-btn");
+  if (submitFinalBtn) {
+    submitFinalBtn.addEventListener("click", () => {
+      if (!state.studentId) {
+        openLoginModal(true);
+        return;
+      }
+      openFinalResultModal("Nộp bài tổng kết");
+    });
+  }
+
+  document.getElementById("result-close-btn")?.addEventListener("click", () => {
+    document.getElementById("final-result-modal").style.display = "none";
+  });
+
+  document.getElementById("result-review-wrong-btn")?.addEventListener("click", () => {
+    document.getElementById("final-result-modal").style.display = "none";
+    const wrongCount = SLA_QUESTIONS.filter(
+      (q) => state.responses[q.id]?.checked && !state.responses[q.id]?.isCorrect
+    ).length;
+    if (wrongCount > 0) {
+      state.filterStatus = "WRONG";
+      updateStatusPillsUI();
+      state.currentIndex = 0;
+      renderApp();
+    } else {
+      showToast("🎉 Tuyệt vời! Bạn không có câu trả lời sai nào!");
+    }
+  });
+
+  document.getElementById("result-restart-btn")?.addEventListener("click", () => {
+    document.getElementById("final-result-modal").style.display = "none";
+    state.responses = {};
+    state.currentIndex = 0;
+    state.quizTimerSeconds = 60 * 60;
+    saveState(false);
+    startGlobalTimer();
+    renderApp();
   });
 
   // Sound Toggle Button

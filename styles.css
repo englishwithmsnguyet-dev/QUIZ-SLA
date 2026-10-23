@@ -1468,6 +1468,101 @@ kbd {
   }
 }
 
+/* Final Result Modal Styles */
+.result-modal-card {
+  max-width: 500px;
+}
+
+.result-score-box {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.result-big-score {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.result-sub-score {
+  font-size: 0.9rem;
+  opacity: 0.92;
+  margin-top: 0.25rem;
+  font-weight: 600;
+}
+
+.result-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.result-stat-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.result-stat-card span {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.result-stat-card strong {
+  font-size: 1.05rem;
+  color: var(--text-main);
+  margin-top: 0.15rem;
+}
+
+.result-stat-card.correct {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+
+.result-stat-card.correct strong {
+  color: var(--success);
+}
+
+.result-stat-card.wrong {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+.result-stat-card.wrong strong {
+  color: var(--danger);
+}
+
+.result-gform-status {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+
 
 
 

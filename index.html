@@ -74,6 +74,59 @@
     </div>
   </div>
 
+  <!-- Final Result Modal (After completing 40 questions) -->
+  <div id="final-result-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card result-modal-card">
+      <div class="modal-header">
+        <div class="brand-badge">KẾT QUẢ CUỐI CÙNG</div>
+        <h2>🎉 Hoàn Thành Bài Ôn Tập SLA QUIZ!</h2>
+        <p id="result-student-info" style="margin-top: 0.25rem; font-weight: 700; color: var(--primary);"></p>
+      </div>
+
+      <div class="result-score-box">
+        <div class="result-big-score" id="result-score-10">10.0 / 10</div>
+        <div class="result-sub-score" id="result-accuracy-text">Tỷ lệ chính xác: 100%</div>
+      </div>
+
+      <div class="result-stats-grid">
+        <div class="result-stat-card">
+          <span>Số câu đã làm</span>
+          <strong id="result-answered-count">40 / 40</strong>
+        </div>
+        <div class="result-stat-card correct">
+          <span>Trả lời ĐÚNG</span>
+          <strong id="result-correct-count">40 câu</strong>
+        </div>
+        <div class="result-stat-card wrong">
+          <span>Trả lời SAI</span>
+          <strong id="result-wrong-count">0 câu</strong>
+        </div>
+        <div class="result-stat-card">
+          <span>Thời gian làm bài</span>
+          <strong id="result-time-spent">00:00</strong>
+        </div>
+      </div>
+
+      <div class="result-gform-status" id="result-gform-status">
+        ✅ Đã tự động báo cáo kết quả cuối cùng về Google Form!
+      </div>
+
+      <div class="result-actions">
+        <button type="button" class="btn btn-primary btn-full" id="result-review-wrong-btn">
+          🔍 Xem & làm lại các câu sai
+        </button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; width: 100%;">
+          <button type="button" class="btn" id="result-restart-btn">
+            ↺ Làm lại từ đầu
+          </button>
+          <button type="button" class="btn" id="result-close-btn">
+            Đóng bảng điểm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="app-header">
     <!-- Top Right Moving Wish Banner Row -->
@@ -121,8 +174,12 @@
           </button>
         </div>
 
-        <button type="button" class="btn btn-success" id="save-progress-btn" title="Lưu tiến độ làm bài hiện tại vào MSSV của bạn">
+        <button type="button" class="btn btn-success" id="save-progress-btn" title="Lưu tiến độ làm bài hiện tại vào máy">
           💾 Lưu tiến độ
+        </button>
+
+        <button type="button" class="btn btn-primary" id="submit-final-btn" title="Nộp bài và xem bảng tổng kết điểm 40 câu">
+          🏁 Nộp bài
         </button>
 
         <div class="stats-bar">
