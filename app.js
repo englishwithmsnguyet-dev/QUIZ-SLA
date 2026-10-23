@@ -70,6 +70,12 @@ function playAnswerEffect(isCorrect) {
     spawnConfettiBurst();
   }
 
+  // Auto-report progress to Google Form at 10, 20, 30, 39, and 40 answered questions
+  const answeredCount = Object.values(state.responses).filter((r) => r && r.checked).length;
+  if ([10, 20, 30, 39, 40].includes(answeredCount)) {
+    trackStudentToGoogleForm(`Mốc tự động ${answeredCount}/40 câu`);
+  }
+
   if (!state.soundEnabled) return;
   try {
     const ctx = getAudioContext();
@@ -159,12 +165,13 @@ function startGlobalTimer() {
     } else {
       pauseGlobalTimer();
       saveState(false);
+      trackStudentToGoogleForm("Hết giờ 60 phút");
       const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
       const correct = Object.values(state.responses).filter((r) => r && r.checked && r.isCorrect).length;
       alert(
-        `⏰ ĐÃ HẾT THỜI GIAN 60 PHÚT!\n\nHọc viên: ${state.studentName || "---"} (MSSV: ${
+        `⏰ ĐÃ HẾT THỜI GIAN 60 PHÚT!\n\nHọc viên: ${state.studentName || "---"} (Mã số học viên: ${
           state.studentId || "---"
-        })\nSố câu đã hoàn thành: ${answered}/40 câu\nSố câu trả lời đúng: ${correct}/${answered} câu\n\nBạn vẫn có thể tiếp tục xem giải thích hoặc làm nốt các câu còn lại!`
+        })\nSố câu đã hoàn thành: ${answered}/40 câu\nSố câu trả lời đúng: ${correct}/${answered} câu\n\nKết quả của bạn đã được tự động gửi về hệ thống!`
       );
     }
   }, 1000);
