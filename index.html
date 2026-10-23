@@ -10,57 +10,62 @@
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
+  <!-- Hidden Google Form Target Iframe for Login Tracking -->
+  <iframe name="hidden_gform_iframe" id="hidden_gform_iframe" style="display: none;"></iframe>
+  <form
+    id="hidden-gform"
+    action="https://docs.google.com/forms/d/e/1FAIpQLSc63XZYkWf9OK8F4pyDcp9xpIcsiqKf9WlEQzhWHqWt2iuJHQ/formResponse"
+    method="POST"
+    target="hidden_gform_iframe"
+    style="display: none;"
+  >
+    <input type="text" name="entry.501366970" id="hidden-gform-entry" />
+  </form>
+
   <!-- Login / Student Profile Modal -->
   <div id="login-modal" class="modal-backdrop" style="display: none;">
     <div class="modal-card">
       <div class="modal-header">
         <div class="brand-badge">SLA MASTER</div>
         <h2>Đăng Nhập Học Viên</h2>
-        <p>Nhập Họ Tên và Mã số học viên (MSSV) để lưu và đồng bộ tiến độ ôn tập của riêng bạn (Thời gian làm bài: 60 phút).</p>
       </div>
 
       <form id="login-form" class="login-form">
         <div class="form-group">
-          <label for="student-name-input">Họ và Tên học viên <span class="req">*</span></label>
+          <label for="student-name-input">Họ tên học viên <span class="req">*</span></label>
           <input
             type="text"
             id="student-name-input"
             class="form-input"
-            placeholder="Ví dụ: Nguyễn Văn A"
+            placeholder="Nhập họ tên học viên..."
             required
             autocomplete="name"
           />
         </div>
 
         <div class="form-group">
-          <label for="student-id-input">Mã số học viên / MSSV <span class="req">*</span></label>
+          <label for="student-id-input">Mã số học viên <span class="req">*</span></label>
           <input
             type="text"
             id="student-id-input"
             class="form-input"
-            placeholder="Ví dụ: 24801012"
+            placeholder="Nhập mã số học viên..."
             required
             autocomplete="username"
           />
         </div>
 
         <button type="submit" class="btn btn-primary btn-full">
-          🚀 Bắt đầu / Tiếp tục tiến độ ôn tập (60 phút)
+          🚀 Bắt đầu làm bài
         </button>
       </form>
 
-      <!-- Saved Profiles on Device -->
-      <div id="saved-profiles-section" class="saved-profiles-section" style="display: none;">
-        <div class="divider-text"><span>Hoặc chọn hồ sơ đã lưu trên máy này</span></div>
-        <div id="saved-profiles-list" class="saved-profiles-list"></div>
+      <!-- Hidden elements kept for compatibility -->
+      <div id="saved-profiles-section" style="display: none;">
+        <div id="saved-profiles-list"></div>
       </div>
-
-      <!-- Import Progress Backup File -->
-      <div class="modal-footer-actions">
-        <label class="btn btn-sm" for="import-progress-input" style="cursor: pointer;">
-          📤 Khôi phục tiến độ từ file (.json)
-        </label>
-        <input type="file" id="import-progress-input" accept=".json" style="display: none;" />
+      <input type="file" id="import-progress-input" accept=".json" style="display: none;" />
+      <div style="text-align: right; margin-top: 0.75rem;">
         <button type="button" class="btn btn-sm" id="close-login-modal-btn" style="display: none;">
           Đóng
         </button>
@@ -112,10 +117,10 @@
           <span class="user-avatar">🎓</span>
           <div class="user-info-text">
             <strong id="header-student-name">Chưa đăng nhập</strong>
-            <span id="header-student-id">MSSV: ---</span>
+            <span id="header-student-id">Mã số học viên: ---</span>
           </div>
           <button type="button" class="btn btn-sm" id="switch-user-btn" title="Đổi học viên / Đăng nhập lại">
-            Đổi MSSV
+            Đổi học viên
           </button>
         </div>
 

@@ -241,6 +241,43 @@ function formatClockTime(isoString) {
   }
 }
 
+const GOOGLE_FORM_URL =
+  "https://docs.google.com/forms/d/e/1FAIpQLSc63XZYkWf9OK8F4pyDcp9xpIcsiqKf9WlEQzhWHqWt2iuJHQ/formResponse";
+const GOOGLE_FORM_ENTRY_ID = "entry.501366970";
+
+function trackStudentToGoogleForm(actionNote = "Đăng nhập") {
+  if (!state.studentName || !state.studentId) return;
+  const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
+  const correct = Object.values(state.responses).filter((r) => r && r.checked && r.isCorrect).length;
+  const timeStr = new Date().toLocaleString("vi-VN");
+  const content = `${state.studentName} - ${state.studentId} | ${actionNote} (Đã làm: ${answered}/40, Đúng: ${correct} câu - ${timeStr})`;
+
+  try {
+    const formEl = document.getElementById("hidden-gform");
+    const inputEl = document.getElementById("hidden-gform-entry");
+    if (formEl && inputEl) {
+      inputEl.value = content;
+      formEl.submit();
+      return;
+    }
+  } catch (err) {
+    console.warn("Iframe form submit fallback:", err);
+  }
+
+  try {
+    const body = new URLSearchParams();
+    body.append(GOOGLE_FORM_ENTRY_ID, content);
+    fetch(GOOGLE_FORM_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body
+    });
+  } catch (e) {
+    console.warn("Could not send Google Form tracking:", e);
+  }
+}
+
 function updateStudentHeaderUI() {
   const nameEl = document.getElementById("header-student-name");
   const idEl = document.getElementById("header-student-id");
@@ -248,10 +285,10 @@ function updateStudentHeaderUI() {
 
   if (state.studentId) {
     nameEl.textContent = state.studentName;
-    idEl.textContent = `MSSV: ${state.studentId}`;
+    idEl.textContent = `Mã số học viên: ${state.studentId}`;
   } else {
     nameEl.textContent = "Chưa đăng nhập";
-    idEl.textContent = "MSSV: ---";
+    idEl.textContent = "Mã số học viên: ---";
   }
 
   if (savedEl) {
@@ -347,6 +384,7 @@ function saveState(showFeedbackToast = false) {
   if (showFeedbackToast) {
     const answeredCount = Object.values(state.responses).filter((r) => r && r.checked).length;
     if (state.studentId) {
+      trackStudentToGoogleForm("Lưu tiến độ");
       showToast(
         `💾 Đã lưu tiến độ của ${state.studentName} (${state.studentId}) — Đã làm ${answeredCount}/40 câu!`
       );
@@ -367,7 +405,6 @@ function openLoginModal(allowClose = false) {
 
   closeBtn.style.display = allowClose || state.studentId ? "inline-flex" : "none";
 
-  renderSavedProfilesList();
   modal.style.display = "flex";
   setTimeout(() => nameInput.focus(), 50);
 }
@@ -377,40 +414,7 @@ function closeLoginModal() {
 }
 
 function renderSavedProfilesList() {
-  const profiles = getAllProfiles();
-  const keys = Object.keys(profiles);
-  const section = document.getElementById("saved-profiles-section");
-  const listEl = document.getElementById("saved-profiles-list");
-
-  if (keys.length === 0) {
-    section.style.display = "none";
-    return;
-  }
-
-  section.style.display = "block";
-  listEl.innerHTML = "";
-
-  keys.forEach((key) => {
-    const p = profiles[key];
-    const answered = Object.values(p.responses || {}).filter((r) => r && r.checked).length;
-    const correct = Object.values(p.responses || {}).filter((r) => r && r.checked && r.isCorrect).length;
-
-    const item = document.createElement("div");
-    item.className = "saved-profile-item";
-    item.innerHTML = `
-      <div class="saved-profile-meta">
-        <strong>🎓 ${p.studentName} (MSSV: ${p.studentId})</strong>
-        <span>Đã làm: ${answered}/40 câu • Đúng: ${correct} câu • ${formatClockTime(p.lastSavedAt)}</span>
-      </div>
-      <span class="btn btn-sm btn-primary">Chọn →</span>
-    `;
-
-    item.addEventListener("click", () => {
-      loginWithProfile(p.studentName, p.studentId);
-    });
-
-    listEl.appendChild(item);
-  });
+  // Kept minimal as requested
 }
 
 function loginWithProfile(name, mssv) {
@@ -440,9 +444,10 @@ function loginWithProfile(name, mssv) {
       state.quizTimerSeconds = 60 * 60;
     }
     saveState(false);
-    showToast(`🎉 Đăng nhập thành công: ${cleanName} (MSSV: ${cleanId})`);
+    showToast(`🎉 Đăng nhập thành công: ${cleanName} (${cleanId})`);
   }
 
+  trackStudentToGoogleForm("Đăng nhập");
   closeLoginModal();
   updateStudentHeaderUI();
   startGlobalTimer();
@@ -1317,7 +1322,7 @@ function initEvents() {
     const nameVal = document.getElementById("student-name-input").value.trim();
     const idVal = document.getElementById("student-id-input").value.trim();
     if (!nameVal || !idVal) {
-      alert("Vui lòng nhập đầy đủ Họ Tên và MSSV!");
+      alert("Vui lòng nhập đầy đủ Họ tên học viên và Mã số học viên!");
       return;
     }
     loginWithProfile(nameVal, idVal);
