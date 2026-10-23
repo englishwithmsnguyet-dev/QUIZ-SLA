@@ -1,6 +1,11 @@
-const STORAGE_KEY = "sla_quiz_master_state_v1";
+const LEGACY_STORAGE_KEY = "sla_quiz_master_state_v1";
+const PROFILES_STORAGE_KEY = "sla_quiz_student_profiles_v1";
+const ACTIVE_USER_KEY = "sla_quiz_active_mssv_v1";
 
 const state = {
+  studentName: "",
+  studentId: "",
+  lastSavedAt: null,
   viewMode: "single", // 'single' | 'list' | 'cheatsheet'
   currentIndex: 0,
   autoCheckSingle: true,
@@ -9,7 +14,7 @@ const state = {
   filterType: "ALL",
   filterStatus: "ALL", // 'ALL' | 'UNANSWERED' | 'WRONG' | 'BOOKMARKED'
   searchQuery: "",
-  shuffledIds: null, // null = natural order 1..40, or array of ids
+  shuffledIds: null,
   responses: {}, // { [qId]: { value, checked, isCorrect } }
   bookmarks: {}, // { [qId]: true }
   essayDraft: "",
@@ -20,27 +25,136 @@ const state = {
 
 let essayTimerInterval = null;
 
-function loadState() {
+function normalizeMssv(mssv) {
+  return String(mssv || "").trim().toUpperCase();
+}
+
+function getAllProfiles() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      state.responses = parsed.responses || {};
-      state.bookmarks = parsed.bookmarks || {};
-      state.essayDraft = parsed.essayDraft || "";
-      state.autoCheckSingle = parsed.autoCheckSingle !== undefined ? parsed.autoCheckSingle : true;
-      state.theme = parsed.theme || "light";
-    }
+    const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
   } catch (e) {
-    console.warn("Could not load saved state:", e);
+    console.warn("Could not read profiles:", e);
+    return {};
   }
+}
+
+function saveAllProfiles(profiles) {
+  try {
+    localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+  } catch (e) {
+    console.warn("Could not save profiles:", e);
+  }
+}
+
+function showToast(message) {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const item = document.createElement("div");
+  item.className = "toast-item";
+  item.textContent = message;
+  container.appendChild(item);
+  setTimeout(() => {
+    item.style.opacity = "0";
+    item.style.transition = "opacity 0.25s ease";
+    setTimeout(() => item.remove(), 260);
+  }, 2800);
+}
+
+function formatClockTime(isoString) {
+  if (!isoString) return "Chưa lưu";
+  try {
+    const d = new Date(isoString);
+    return `Đã lưu ${d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+  } catch {
+    return "Đã lưu";
+  }
+}
+
+function updateStudentHeaderUI() {
+  const nameEl = document.getElementById("header-student-name");
+  const idEl = document.getElementById("header-student-id");
+  const savedEl = document.getElementById("last-saved-label");
+
+  if (state.studentId) {
+    nameEl.textContent = state.studentName;
+    idEl.textContent = `MSSV: ${state.studentId}`;
+  } else {
+    nameEl.textContent = "Chưa đăng nhập";
+    idEl.textContent = "MSSV: ---";
+  }
+
+  if (savedEl) {
+    savedEl.textContent = formatClockTime(state.lastSavedAt);
+  }
+}
+
+function loadState() {
+  const profiles = getAllProfiles();
+  const activeMssv = localStorage.getItem(ACTIVE_USER_KEY);
+
+  if (activeMssv && profiles[activeMssv]) {
+    applyProfileToState(profiles[activeMssv]);
+  } else {
+    // Check legacy storage for any prior anonymous work
+    try {
+      const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacyRaw) {
+        const parsed = JSON.parse(legacyRaw);
+        state.responses = parsed.responses || {};
+        state.bookmarks = parsed.bookmarks || {};
+        state.essayDraft = parsed.essayDraft || "";
+        state.autoCheckSingle = parsed.autoCheckSingle !== undefined ? parsed.autoCheckSingle : true;
+        state.theme = parsed.theme || "light";
+      }
+    } catch (e) {
+      console.warn("Could not load legacy state:", e);
+    }
+  }
+
   document.documentElement.setAttribute("data-theme", state.theme);
 }
 
-function saveState() {
+function applyProfileToState(profile) {
+  state.studentName = profile.studentName || "";
+  state.studentId = profile.studentId || "";
+  state.lastSavedAt = profile.lastSavedAt || null;
+  state.currentIndex = profile.currentIndex || 0;
+  state.responses = profile.responses || {};
+  state.bookmarks = profile.bookmarks || {};
+  state.essayDraft = profile.essayDraft || "";
+  state.autoCheckSingle = profile.autoCheckSingle !== undefined ? profile.autoCheckSingle : true;
+  state.theme = profile.theme || state.theme || "light";
+  document.documentElement.setAttribute("data-theme", state.theme);
+}
+
+function saveState(showFeedbackToast = false) {
+  const nowIso = new Date().toISOString();
+  state.lastSavedAt = nowIso;
+
+  // Save to active student profile if logged in
+  if (state.studentId) {
+    const key = normalizeMssv(state.studentId);
+    const profiles = getAllProfiles();
+    profiles[key] = {
+      studentName: state.studentName,
+      studentId: state.studentId,
+      lastSavedAt: nowIso,
+      currentIndex: state.currentIndex,
+      responses: state.responses,
+      bookmarks: state.bookmarks,
+      essayDraft: state.essayDraft,
+      autoCheckSingle: state.autoCheckSingle,
+      theme: state.theme
+    };
+    saveAllProfiles(profiles);
+    localStorage.setItem(ACTIVE_USER_KEY, key);
+  }
+
+  // Also keep legacy snapshot synced
   try {
     localStorage.setItem(
-      STORAGE_KEY,
+      LEGACY_STORAGE_KEY,
       JSON.stringify({
         responses: state.responses,
         bookmarks: state.bookmarks,
@@ -52,6 +166,169 @@ function saveState() {
   } catch (e) {
     console.warn("Could not save state:", e);
   }
+
+  updateStudentHeaderUI();
+
+  if (showFeedbackToast) {
+    const answeredCount = Object.values(state.responses).filter((r) => r && r.checked).length;
+    if (state.studentId) {
+      showToast(
+        `💾 Đã lưu tiến độ của ${state.studentName} (${state.studentId}) — Đã làm ${answeredCount}/40 câu!`
+      );
+    } else {
+      showToast(`💾 Đã lưu tiến độ tạm thời (${answeredCount}/40 câu)!`);
+    }
+  }
+}
+
+function openLoginModal(allowClose = false) {
+  const modal = document.getElementById("login-modal");
+  const closeBtn = document.getElementById("close-login-modal-btn");
+  const nameInput = document.getElementById("student-name-input");
+  const idInput = document.getElementById("student-id-input");
+
+  if (state.studentName) nameInput.value = state.studentName;
+  if (state.studentId) idInput.value = state.studentId;
+
+  closeBtn.style.display = allowClose || state.studentId ? "inline-flex" : "none";
+
+  renderSavedProfilesList();
+  modal.style.display = "flex";
+  setTimeout(() => nameInput.focus(), 50);
+}
+
+function closeLoginModal() {
+  document.getElementById("login-modal").style.display = "none";
+}
+
+function renderSavedProfilesList() {
+  const profiles = getAllProfiles();
+  const keys = Object.keys(profiles);
+  const section = document.getElementById("saved-profiles-section");
+  const listEl = document.getElementById("saved-profiles-list");
+
+  if (keys.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+
+  section.style.display = "block";
+  listEl.innerHTML = "";
+
+  keys.forEach((key) => {
+    const p = profiles[key];
+    const answered = Object.values(p.responses || {}).filter((r) => r && r.checked).length;
+    const correct = Object.values(p.responses || {}).filter((r) => r && r.checked && r.isCorrect).length;
+
+    const item = document.createElement("div");
+    item.className = "saved-profile-item";
+    item.innerHTML = `
+      <div class="saved-profile-meta">
+        <strong>🎓 ${p.studentName} (MSSV: ${p.studentId})</strong>
+        <span>Đã làm: ${answered}/40 câu • Đúng: ${correct} câu • ${formatClockTime(p.lastSavedAt)}</span>
+      </div>
+      <span class="btn btn-sm btn-primary">Chọn →</span>
+    `;
+
+    item.addEventListener("click", () => {
+      loginWithProfile(p.studentName, p.studentId);
+    });
+
+    listEl.appendChild(item);
+  });
+}
+
+function loginWithProfile(name, mssv) {
+  const cleanName = String(name || "").trim();
+  const cleanId = normalizeMssv(mssv);
+  if (!cleanName || !cleanId) return;
+
+  const profiles = getAllProfiles();
+  if (profiles[cleanId]) {
+    // Existing student profile found -> load their saved progress and update name if edited
+    profiles[cleanId].studentName = cleanName;
+    saveAllProfiles(profiles);
+    applyProfileToState(profiles[cleanId]);
+    localStorage.setItem(ACTIVE_USER_KEY, cleanId);
+    const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
+    showToast(`👋 Chào mừng trở lại, ${cleanName} (${cleanId})! Đã khôi phục ${answered}/40 câu.`);
+  } else {
+    // New student profile: if currently no student was logged in and there is existing progress, keep it; otherwise start fresh for the new student
+    const hadPreviousLoggedInUser = !!state.studentId && state.studentId !== cleanId;
+    state.studentName = cleanName;
+    state.studentId = cleanId;
+    if (hadPreviousLoggedInUser) {
+      state.responses = {};
+      state.bookmarks = {};
+      state.essayDraft = "";
+      state.currentIndex = 0;
+    }
+    saveState(false);
+    showToast(`🎉 Đăng nhập thành công: ${cleanName} (MSSV: ${cleanId})`);
+  }
+
+  closeLoginModal();
+  updateStudentHeaderUI();
+  renderApp();
+}
+
+function exportProgressFile() {
+  if (!state.studentId) {
+    openLoginModal(true);
+    return;
+  }
+  saveState(false);
+  const payload = {
+    app: "SLA_MASTER_QUIZ_V1",
+    exportedAt: new Date().toISOString(),
+    studentName: state.studentName,
+    studentId: state.studentId,
+    currentIndex: state.currentIndex,
+    responses: state.responses,
+    bookmarks: state.bookmarks,
+    essayDraft: state.essayDraft
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `SLA_Quiz_Progress_${state.studentId}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast(`📥 Đã tải file tiến độ SLA_Quiz_Progress_${state.studentId}.json`);
+}
+
+function importProgressFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== "object" || !data.responses) {
+        alert("File không hợp lệ! Vui lòng chọn đúng file .json tiến độ SLA Master Quiz.");
+        return;
+      }
+      state.studentName = data.studentName || state.studentName || "Học viên SLA";
+      state.studentId = normalizeMssv(data.studentId || state.studentId || "HV001");
+      state.currentIndex = data.currentIndex || 0;
+      state.responses = data.responses || {};
+      state.bookmarks = data.bookmarks || {};
+      state.essayDraft = data.essayDraft || "";
+      saveState(false);
+      closeLoginModal();
+      renderApp();
+      const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
+      showToast(
+        `📤 Đã khôi phục tiến độ của ${state.studentName} (${state.studentId}): ${answered}/40 câu!`
+      );
+    } catch (err) {
+      alert("Không thể đọc file tiến độ. Vui lòng kiểm tra lại định dạng file (.json).");
+    }
+  };
+  reader.readAsText(file);
 }
 
 function getTypeLabel(type) {
@@ -128,7 +405,7 @@ function evaluateQuestion(q, userVal) {
     return accepted.includes(clean);
   }
   if (q.type === "essay") {
-    return true; // Self-evaluated essay
+    return true;
   }
   return false;
 }
@@ -182,6 +459,8 @@ function updateStatsUI() {
   if (progressFill) {
     progressFill.style.width = `${(answered / 40) * 100}%`;
   }
+
+  updateStudentHeaderUI();
 }
 
 function renderSidebarGrid(filteredQuestions) {
@@ -209,6 +488,7 @@ function renderSidebarGrid(filteredQuestions) {
 
     btn.addEventListener("click", () => {
       state.currentIndex = idx;
+      saveState(false);
       if (state.viewMode !== "single") {
         const el = document.getElementById(`q-card-${q.id}`);
         if (el) {
@@ -254,7 +534,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
   `;
   header.querySelector("[data-bookmark]").addEventListener("click", () => {
     state.bookmarks[q.id] = !state.bookmarks[q.id];
-    saveState();
+    saveState(false);
     renderApp();
   });
   card.appendChild(header);
@@ -327,7 +607,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
           if (idx >= 0) prev.splice(idx, 1);
           else prev.push(opt.key);
           state.responses[q.id] = { value: prev, checked: false, isCorrect: false };
-          saveState();
+          saveState(false);
           renderApp();
         } else {
           const shouldAutoCheck = state.autoCheckSingle;
@@ -337,7 +617,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
             checked: shouldAutoCheck,
             isCorrect: shouldAutoCheck ? isCorrect : false
           };
-          saveState();
+          saveState(false);
           renderApp();
         }
       });
@@ -390,7 +670,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
           checked: false,
           isCorrect: false
         };
-        saveState();
+        saveState(false);
       });
 
       row.appendChild(promptDiv);
@@ -431,7 +711,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
         checked: false,
         isCorrect: false
       };
-      saveState();
+      saveState(false);
     });
 
     input.addEventListener("keydown", (e) => {
@@ -486,12 +766,12 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
     const textarea = document.createElement("textarea");
     textarea.className = "essay-textarea";
     textarea.placeholder =
-      "Viết đoạn văn 150-200 từ của bạn tại đây (nội dung được tự động lưu)...\nGợi ý mở bài: Instructed Second Language Acquisition (ISLA) plays a vital role in shaping my English teaching by shifting the focus from mechanical rule delivery to facilitating natural language development...";
+      "Viết đoạn văn 150-200 từ của bạn tại đây (nội dung được tự động lưu theo MSSV)...\nGợi ý mở bài: Instructed Second Language Acquisition (ISLA) plays a vital role in shaping my English teaching by shifting the focus from mechanical rule delivery to facilitating natural language development...";
     textarea.value = state.essayDraft;
 
     textarea.addEventListener("input", (e) => {
       state.essayDraft = e.target.value;
-      saveState();
+      saveState(false);
       const wc = countWords(state.essayDraft);
       const wcEl = document.getElementById("essay-word-count");
       if (wcEl) {
@@ -558,7 +838,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
           checked: true,
           isCorrect: evaluateQuestion(q, resp.value)
         };
-        saveState();
+        saveState(false);
         renderApp();
       });
       leftActions.appendChild(revealBtn);
@@ -570,7 +850,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
     retryBtn.textContent = "↺ Làm lại câu này";
     retryBtn.addEventListener("click", () => {
       delete state.responses[q.id];
-      saveState();
+      saveState(false);
       renderApp();
     });
     leftActions.appendChild(retryBtn);
@@ -590,6 +870,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
     prevBtn.addEventListener("click", () => {
       if (state.currentIndex > 0) {
         state.currentIndex--;
+        saveState(false);
         renderApp();
       }
     });
@@ -602,6 +883,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
     nextBtn.addEventListener("click", () => {
       if (state.currentIndex < totalFiltered - 1) {
         state.currentIndex++;
+        saveState(false);
         renderApp();
       }
     });
@@ -613,7 +895,7 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
 
   card.appendChild(actionsBar);
 
-  // Explanation Section (shown when checked or in list reveal mode)
+  // Explanation Section
   if (isChecked) {
     const expBox = document.createElement("div");
     expBox.className = "explanation-box";
@@ -681,7 +963,7 @@ function checkQuestionNow(q) {
     checked: true,
     isCorrect
   };
-  saveState();
+  saveState(false);
   renderApp();
 }
 
@@ -846,6 +1128,48 @@ function updateStatusPillsUI() {
 }
 
 function initEvents() {
+  // Login Form Submit
+  document.getElementById("login-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const nameVal = document.getElementById("student-name-input").value.trim();
+    const idVal = document.getElementById("student-id-input").value.trim();
+    if (!nameVal || !idVal) {
+      alert("Vui lòng nhập đầy đủ Họ Tên và MSSV!");
+      return;
+    }
+    loginWithProfile(nameVal, idVal);
+  });
+
+  // Switch User / Open Login Modal
+  document.getElementById("switch-user-btn").addEventListener("click", () => {
+    openLoginModal(true);
+  });
+
+  document.getElementById("close-login-modal-btn").addEventListener("click", () => {
+    closeLoginModal();
+  });
+
+  // Save Progress Buttons (Header & Sidebar)
+  const handleManualSave = () => {
+    if (!state.studentId) {
+      openLoginModal(true);
+      return;
+    }
+    saveState(true);
+  };
+  document.getElementById("save-progress-btn").addEventListener("click", handleManualSave);
+  document.getElementById("sidebar-save-btn").addEventListener("click", handleManualSave);
+
+  // Export & Import Progress JSON
+  document.getElementById("export-progress-btn").addEventListener("click", exportProgressFile);
+  document.getElementById("import-progress-input").addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importProgressFile(file);
+      e.target.value = "";
+    }
+  });
+
   // Topic Filter
   const topicSelect = document.getElementById("topic-filter");
   Object.entries(SLA_TOPICS).forEach(([key, label]) => {
@@ -904,7 +1228,7 @@ function initEvents() {
   autoCheckInput.checked = state.autoCheckSingle;
   autoCheckInput.addEventListener("change", (e) => {
     state.autoCheckSingle = e.target.checked;
-    saveState();
+    saveState(false);
   });
 
   // Show all answers in List mode toggle
@@ -946,7 +1270,7 @@ function initEvents() {
     wrongIds.forEach((id) => {
       delete state.responses[id];
     });
-    saveState();
+    saveState(true);
     state.filterStatus = "UNANSWERED";
     updateStatusPillsUI();
     state.currentIndex = 0;
@@ -955,10 +1279,16 @@ function initEvents() {
 
   // Reset All Progress
   document.getElementById("reset-all-btn").addEventListener("click", () => {
-    if (confirm("Bạn có chắc muốn xóa kết quả đã làm để luyện tập lại từ đầu không? (Các câu đã đánh dấu ★ và bài nháp tự luận vẫn được giữ nguyên)")) {
+    if (
+      confirm(
+        `Bạn có chắc muốn xóa kết quả đã làm của ${
+          state.studentName || "học viên hiện tại"
+        } để luyện tập lại từ đầu không? (Các câu đã đánh dấu ★ và bài nháp tự luận vẫn được giữ nguyên)`
+      )
+    ) {
       state.responses = {};
-      saveState();
       state.currentIndex = 0;
+      saveState(true);
       renderApp();
     }
   });
@@ -973,11 +1303,22 @@ function initEvents() {
     state.theme = state.theme === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", state.theme);
     updateThemeBtnText();
-    saveState();
+    saveState(false);
   });
 
-  // Keyboard navigation in Single mode
+  // Keyboard shortcuts
   window.addEventListener("keydown", (e) => {
+    // Ctrl+S / Cmd+S to Save Progress
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      handleManualSave();
+      return;
+    }
+
+    // Do not intercept keys when login modal is open
+    const modal = document.getElementById("login-modal");
+    if (modal && modal.style.display !== "none") return;
+
     const activeTag = document.activeElement?.tagName;
     if (activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT") return;
     if (state.viewMode !== "single") return;
@@ -989,16 +1330,18 @@ function initEvents() {
     if (e.key === "ArrowRight") {
       if (state.currentIndex < filtered.length - 1) {
         state.currentIndex++;
+        saveState(false);
         renderApp();
       }
     } else if (e.key === "ArrowLeft") {
       if (state.currentIndex > 0) {
         state.currentIndex--;
+        saveState(false);
         renderApp();
       }
     } else if (e.key.toLowerCase() === "b") {
       state.bookmarks[q.id] = !state.bookmarks[q.id];
-      saveState();
+      saveState(false);
       renderApp();
     } else if (e.key === "Enter") {
       if (!state.responses[q.id]?.checked) {
@@ -1027,7 +1370,7 @@ function initEvents() {
               isCorrect: state.autoCheckSingle ? isCorrect : false
             };
           }
-          saveState();
+          saveState(false);
           renderApp();
         }
       }
@@ -1039,4 +1382,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loadState();
   initEvents();
   renderApp();
+
+  // Prompt login modal if student hasn't logged in yet
+  if (!state.studentId) {
+    openLoginModal(false);
+  }
 });

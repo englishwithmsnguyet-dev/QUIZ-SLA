@@ -7,6 +7,67 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Login / Student Profile Modal -->
+  <div id="login-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="brand-badge">SLA MASTER</div>
+        <h2>Đăng Nhập Học Viên</h2>
+        <p>Nhập Họ Tên và Mã số học viên (MSSV) để lưu và đồng bộ tiến độ ôn tập của riêng bạn.</p>
+      </div>
+
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="student-name-input">Họ và Tên học viên <span class="req">*</span></label>
+          <input
+            type="text"
+            id="student-name-input"
+            class="form-input"
+            placeholder="Ví dụ: Nguyễn Văn A"
+            required
+            autocomplete="name"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="student-id-input">Mã số học viên / MSSV <span class="req">*</span></label>
+          <input
+            type="text"
+            id="student-id-input"
+            class="form-input"
+            placeholder="Ví dụ: 24801012"
+            required
+            autocomplete="username"
+          />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full">
+          🚀 Bắt đầu / Tiếp tục tiến độ ôn tập
+        </button>
+      </form>
+
+      <!-- Saved Profiles on Device -->
+      <div id="saved-profiles-section" class="saved-profiles-section" style="display: none;">
+        <div class="divider-text"><span>Hoặc chọn hồ sơ đã lưu trên máy này</span></div>
+        <div id="saved-profiles-list" class="saved-profiles-list"></div>
+      </div>
+
+      <!-- Import Progress Backup File -->
+      <div class="modal-footer-actions">
+        <label class="btn btn-sm" for="import-progress-input" style="cursor: pointer;">
+          📤 Khôi phục tiến độ từ file (.json)
+        </label>
+        <input type="file" id="import-progress-input" accept=".json" style="display: none;" />
+        <button type="button" class="btn btn-sm" id="close-login-modal-btn" style="display: none;">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Header -->
   <header class="app-header">
     <div class="header-inner">
@@ -19,6 +80,22 @@
       </div>
 
       <div class="header-controls">
+        <!-- Student Badge & Save Progress Controls -->
+        <div class="user-profile-pill" id="user-profile-pill">
+          <span class="user-avatar">🎓</span>
+          <div class="user-info-text">
+            <strong id="header-student-name">Chưa đăng nhập</strong>
+            <span id="header-student-id">MSSV: ---</span>
+          </div>
+          <button type="button" class="btn btn-sm" id="switch-user-btn" title="Đổi học viên / Đăng nhập lại">
+            Đổi MSSV
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-success" id="save-progress-btn" title="Lưu tiến độ làm bài hiện tại vào MSSV của bạn">
+          💾 Lưu tiến độ
+        </button>
+
         <div class="stats-bar">
           <span class="stat-item" title="Số câu đã kiểm tra">Đã làm: <strong id="stat-answered">0/40</strong></span>
           <span class="stat-item correct" title="Số câu trả lời đúng">✓ Đúng: <strong id="stat-correct">0</strong></span>
@@ -38,18 +115,30 @@
   <main class="main-container">
     <!-- Left Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-section">
+      <!-- Student Progress Card -->
+      <div class="sidebar-section student-progress-box">
         <div class="sidebar-label">
-          <span>Tiến độ hoàn thành</span>
-          <span id="filtered-count-label">40 câu</span>
+          <span>Hồ sơ & Lưu tiến độ</span>
+          <span id="last-saved-label" class="last-saved-text">Chưa lưu</span>
         </div>
         <div class="progress-track">
           <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
         </div>
+        <div class="save-actions-grid">
+          <button type="button" class="btn btn-sm btn-primary" id="sidebar-save-btn">
+            💾 Lưu tiến độ ngay
+          </button>
+          <button type="button" class="btn btn-sm" id="export-progress-btn" title="Tải file tiến độ (.json) về máy để mang sang thiết bị khác">
+            📥 Tải file tiến độ
+          </button>
+        </div>
       </div>
 
       <div class="sidebar-section">
-        <div class="sidebar-label">Tìm kiếm & Lọc chuyên đề</div>
+        <div class="sidebar-label">
+          <span>Tìm kiếm & Lọc chuyên đề</span>
+          <span id="filtered-count-label">40 câu</span>
+        </div>
         <input
           type="search"
           id="search-input"
