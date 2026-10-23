@@ -686,6 +686,9 @@ function renderSidebarGrid(filteredQuestions) {
         }
       }
       renderApp();
+      if (window.innerWidth <= 980) {
+        document.getElementById("questions-mount")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
 
     grid.appendChild(btn);
@@ -1044,6 +1047,9 @@ function buildQuestionCardDOM(q, idxInFiltered, totalFiltered, isListView = fals
       delete state.responses[q.id];
       saveState(false);
       renderApp();
+      if (window.innerWidth <= 980) {
+        document.getElementById("questions-mount")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
     leftActions.appendChild(retryBtn);
   }
@@ -1299,6 +1305,9 @@ function renderApp() {
       document.getElementById("search-input").value = "";
       updateStatusPillsUI();
       renderApp();
+      if (window.innerWidth <= 980) {
+        document.getElementById("questions-mount")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
     return;
   }
@@ -1400,6 +1409,9 @@ function initEvents() {
       state.currentIndex = 0;
       updateStatusPillsUI();
       renderApp();
+      if (window.innerWidth <= 980) {
+        document.getElementById("questions-mount")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
 
@@ -1415,6 +1427,9 @@ function initEvents() {
         listRevealWrap.style.display = state.viewMode === "list" ? "inline-flex" : "none";
       }
       renderApp();
+      if (window.innerWidth <= 980) {
+        document.getElementById("questions-mount")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     });
   });
 
