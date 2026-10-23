@@ -16,7 +16,7 @@
       <div class="modal-header">
         <div class="brand-badge">SLA MASTER</div>
         <h2>Đăng Nhập Học Viên</h2>
-        <p>Nhập Họ Tên và Mã số học viên (MSSV) để lưu và đồng bộ tiến độ ôn tập của riêng bạn.</p>
+        <p>Nhập Họ Tên và Mã số học viên (MSSV) để lưu và đồng bộ tiến độ ôn tập của riêng bạn (Thời gian làm bài: 60 phút).</p>
       </div>
 
       <form id="login-form" class="login-form">
@@ -45,7 +45,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary btn-full">
-          🚀 Bắt đầu / Tiếp tục tiến độ ôn tập
+          🚀 Bắt đầu / Tiếp tục tiến độ ôn tập (60 phút)
         </button>
       </form>
 
@@ -70,6 +70,21 @@
 
   <!-- Header -->
   <header class="app-header">
+    <!-- Top Right Moving Wish Banner Row -->
+    <div class="header-top-strip">
+      <div class="header-top-inner">
+        <div class="exam-info-tag">
+          ⏱ Thời gian toàn bài: <strong>60 Phút</strong> • 40 Câu hỏi SLA
+        </div>
+        <div class="wish-marquee-box" aria-label="Lời chúc thi tốt">
+          <div class="wish-marquee-track">
+            <span>🌟 CHÚC 18 BẠN LỚP CUỐI TUẦN THI TỐT NHÉ! 🍀🎓✨</span>
+            <span>🌟 CHÚC 18 BẠN LỚP CUỐI TUẦN THI TỐT NHÉ! 🍀🎓✨</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="header-inner">
       <div class="brand">
         <div class="brand-badge">SLA MASTER</div>
@@ -80,6 +95,18 @@
       </div>
 
       <div class="header-controls">
+        <!-- 60-Minute Global Countdown Timer -->
+        <div class="global-timer-pill" id="global-timer-pill">
+          <span class="timer-icon">⏳</span>
+          <strong id="global-timer-display" class="timer-digits">60:00</strong>
+          <button type="button" class="btn btn-sm btn-primary" id="global-timer-toggle-btn" title="Bắt đầu hoặc tạm dừng đồng hồ 60 phút">
+            ▶ Bắt đầu
+          </button>
+          <button type="button" class="btn btn-sm" id="global-timer-reset-btn" title="Đặt lại đồng hồ về 60:00">
+            ↺
+          </button>
+        </div>
+
         <!-- Student Badge & Save Progress Controls -->
         <div class="user-profile-pill" id="user-profile-pill">
           <span class="user-avatar">🎓</span>
@@ -104,7 +131,7 @@
           <span class="stat-item bookmark" title="Số câu đánh dấu ôn kỹ">★ Lưu: <strong id="stat-bookmarked">0</strong></span>
         </div>
 
-        <button type="button" class="btn btn-sm" id="shuffle-btn">🔀 Trộn thứ tự câu</button>
+        <button type="button" class="btn btn-sm" id="shuffle-btn">🔀 Trộn câu</button>
         <button type="button" class="btn btn-sm" id="theme-toggle-btn">🌙 Giao diện Tối</button>
         <button type="button" class="btn btn-sm btn-danger-outline" id="reset-all-btn">↺ Làm mới</button>
       </div>

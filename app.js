@@ -20,10 +20,90 @@ const state = {
   essayDraft: "",
   essayTimerSeconds: 20 * 60,
   essayTimerRunning: false,
+  quizTimerSeconds: 60 * 60,
+  quizTimerRunning: false,
   theme: "light"
 };
 
 let essayTimerInterval = null;
+let quizTimerInterval = null;
+
+function updateGlobalTimerUI() {
+  const displayEl = document.getElementById("global-timer-display");
+  const pillEl = document.getElementById("global-timer-pill");
+  const toggleBtn = document.getElementById("global-timer-toggle-btn");
+  if (!displayEl || !pillEl || !toggleBtn) return;
+
+  displayEl.textContent = formatTime(state.quizTimerSeconds);
+  toggleBtn.textContent = state.quizTimerRunning ? "⏸ Tạm dừng" : "▶ Bắt đầu";
+
+  pillEl.classList.remove("warning", "danger");
+  if (state.quizTimerSeconds <= 5 * 60) {
+    pillEl.classList.add("danger");
+  } else if (state.quizTimerSeconds <= 10 * 60) {
+    pillEl.classList.add("warning");
+  }
+}
+
+function startGlobalTimer() {
+  if (state.quizTimerRunning) return;
+  if (state.quizTimerSeconds <= 0) {
+    state.quizTimerSeconds = 60 * 60;
+  }
+  state.quizTimerRunning = true;
+  updateGlobalTimerUI();
+
+  clearInterval(quizTimerInterval);
+  quizTimerInterval = setInterval(() => {
+    if (state.quizTimerSeconds > 0) {
+      state.quizTimerSeconds--;
+      updateGlobalTimerUI();
+
+      if (state.quizTimerSeconds === 10 * 60) {
+        showToast("⚠️ Còn 10 phút nữa là hết 60 phút làm bài!");
+      } else if (state.quizTimerSeconds === 5 * 60) {
+        showToast("🔥 Còn 5 phút cuối! Hãy kiểm tra lại các câu chưa làm nhé!");
+      } else if (state.quizTimerSeconds % 30 === 0) {
+        saveState(false);
+      }
+    } else {
+      pauseGlobalTimer();
+      saveState(false);
+      const answered = Object.values(state.responses).filter((r) => r && r.checked).length;
+      const correct = Object.values(state.responses).filter((r) => r && r.checked && r.isCorrect).length;
+      alert(
+        `⏰ ĐÃ HẾT THỜI GIAN 60 PHÚT!\n\nHọc viên: ${state.studentName || "---"} (MSSV: ${
+          state.studentId || "---"
+        })\nSố câu đã hoàn thành: ${answered}/40 câu\nSố câu trả lời đúng: ${correct}/${answered} câu\n\nBạn vẫn có thể tiếp tục xem giải thích hoặc làm nốt các câu còn lại!`
+      );
+    }
+  }, 1000);
+}
+
+function pauseGlobalTimer() {
+  state.quizTimerRunning = false;
+  clearInterval(quizTimerInterval);
+  updateGlobalTimerUI();
+}
+
+function toggleGlobalTimer() {
+  if (state.quizTimerRunning) {
+    pauseGlobalTimer();
+    saveState(false);
+  } else {
+    startGlobalTimer();
+  }
+}
+
+function resetGlobalTimer() {
+  if (confirm("Đặt lại đồng hồ canh giờ về 60:00 phút?")) {
+    pauseGlobalTimer();
+    state.quizTimerSeconds = 60 * 60;
+    updateGlobalTimerUI();
+    saveState(false);
+    showToast("⏱ Đã đặt lại đồng hồ về 60:00 phút!");
+  }
+}
 
 function normalizeMssv(mssv) {
   return String(mssv || "").trim().toUpperCase();
@@ -123,6 +203,10 @@ function applyProfileToState(profile) {
   state.responses = profile.responses || {};
   state.bookmarks = profile.bookmarks || {};
   state.essayDraft = profile.essayDraft || "";
+  state.quizTimerSeconds =
+    typeof profile.quizTimerSeconds === "number" && profile.quizTimerSeconds > 0
+      ? profile.quizTimerSeconds
+      : 60 * 60;
   state.autoCheckSingle = profile.autoCheckSingle !== undefined ? profile.autoCheckSingle : true;
   state.theme = profile.theme || state.theme || "light";
   document.documentElement.setAttribute("data-theme", state.theme);
@@ -144,6 +228,7 @@ function saveState(showFeedbackToast = false) {
       responses: state.responses,
       bookmarks: state.bookmarks,
       essayDraft: state.essayDraft,
+      quizTimerSeconds: state.quizTimerSeconds,
       autoCheckSingle: state.autoCheckSingle,
       theme: state.theme
     };
@@ -262,6 +347,7 @@ function loginWithProfile(name, mssv) {
       state.bookmarks = {};
       state.essayDraft = "";
       state.currentIndex = 0;
+      state.quizTimerSeconds = 60 * 60;
     }
     saveState(false);
     showToast(`🎉 Đăng nhập thành công: ${cleanName} (MSSV: ${cleanId})`);
@@ -269,6 +355,7 @@ function loginWithProfile(name, mssv) {
 
   closeLoginModal();
   updateStudentHeaderUI();
+  startGlobalTimer();
   renderApp();
 }
 
@@ -1376,15 +1463,22 @@ function initEvents() {
       }
     }
   });
+
+  // 60-Minute Global Timer Controls
+  document.getElementById("global-timer-toggle-btn").addEventListener("click", toggleGlobalTimer);
+  document.getElementById("global-timer-reset-btn").addEventListener("click", resetGlobalTimer);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   loadState();
   initEvents();
+  updateGlobalTimerUI();
   renderApp();
 
-  // Prompt login modal if student hasn't logged in yet
+  // Prompt login modal if student hasn't logged in yet, otherwise start 60-min timer
   if (!state.studentId) {
     openLoginModal(false);
+  } else {
+    startGlobalTimer();
   }
 });

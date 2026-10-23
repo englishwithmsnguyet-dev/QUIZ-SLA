@@ -1131,3 +1131,113 @@ kbd {
   animation: fadeIn 0.2s ease;
 }
 
+/* Top Right Moving Wish Banner & 60-Min Timer */
+.header-top-strip {
+  background: linear-gradient(90deg, #312e81 0%, #4f46e5 50%, #7c3aed 100%);
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.header-top-inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0.35rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.exam-info-tag {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0.95;
+}
+
+.wish-marquee-box {
+  max-width: 540px;
+  width: 100%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  padding: 0.2rem 0;
+  position: relative;
+  margin-left: auto;
+}
+
+.wish-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 3rem;
+  animation: marqueeMove 14s linear infinite;
+}
+
+.wish-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.wish-marquee-track span {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fef08a;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  padding-left: 1rem;
+}
+
+@keyframes marqueeMove {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.global-timer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--primary-light);
+  border: 1.5px solid var(--primary);
+  padding: 0.28rem 0.6rem;
+  border-radius: var(--radius-sm);
+}
+
+.global-timer-pill.warning {
+  background: var(--warning-bg);
+  border-color: var(--warning);
+}
+
+.global-timer-pill.danger {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  animation: pulseTimer 1s infinite alternate;
+}
+
+@keyframes pulseTimer {
+  from { transform: scale(1); }
+  to { transform: scale(1.03); }
+}
+
+.timer-digits {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--primary);
+  min-width: 52px;
+  text-align: center;
+}
+
+.global-timer-pill.warning .timer-digits {
+  color: var(--warning);
+}
+
+.global-timer-pill.danger .timer-digits {
+  color: var(--danger);
+}
+
+
