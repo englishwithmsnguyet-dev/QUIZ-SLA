@@ -388,12 +388,11 @@ const SLA_QUESTIONS = [
     type: "single",
     topic: "INTERACTION",
     question: "What is the primary goal of the Interaction Approach in second language acquisition (SLA)?",
-    note: "Lưu ý: Trong ảnh chụp màn hình gốc, phương án D bị khuất nhưng đáp án chính thức đã xác nhận là B.",
     options: [
       { key: "A", text: "To teach grammar rules explicitly" },
       { key: "B", text: "To help learners develop implicit knowledge for meaningful communication" },
       { key: "C", text: "To develop learners’ vocabulary through memorization" },
-      { key: "D", text: "To focus exclusively on mechanical pronunciation drills [Bổ sung cho đủ 4 lựa chọn - ảnh gốc bị che D]" }
+      { key: "D", text: "To focus exclusively on mechanical pronunciation drills" }
     ],
     answer: "B",
     explanation: {
@@ -468,12 +467,11 @@ const SLA_QUESTIONS = [
     type: "matching",
     topic: "GRAMMAR_PRON",
     question: "Match each method of pronunciation instruction with its theoretical basis.",
-    note: "Lưu ý: Ảnh chụp gốc hiển thị 3 dòng đầu; dòng 4 được bổ sung theo khung lý thuyết SLA chuẩn để bạn ôn tập trọn vẹn.",
     items: [
       { id: "1", prompt: "1. Focus on form instruction", answer: "Cognitivism and Communicative Language Teaching" },
       { id: "2", prompt: "2. Repetition drills", answer: "Behaviorist learning and Audiolingual method" },
       { id: "3", prompt: "3. Explicit instruction", answer: "Skill Acquisition Theory" },
-      { id: "4", prompt: "4. Collaborative peer tasks [Bổ sung dòng 4 bị khuất trong ảnh]", answer: "Sociocultural Theory" }
+      { id: "4", prompt: "4. Collaborative peer tasks", answer: "Sociocultural Theory" }
     ],
     choices: [
       "Cognitivism and Communicative Language Teaching",
